@@ -1,5 +1,7 @@
+import 'package:flutter/cupertino.dart' as pw;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:printing/printing.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 import '../services/invoice_generator.dart';
@@ -18,7 +20,7 @@ class _ConfirmOrderScreenState extends State<ConfirmOrderScreen> {
   Future<void> _handlePrintInvoice(user, products) async {
     setState(() => _isLoading = true);
     try {
-      await _generatePdfInBackground(user, products);
+      await InvoiceGenerator.generateInvoicePdf(user, products);
     } catch (e) {
       debugPrint("Error generating PDF: $e");
     } finally {

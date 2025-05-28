@@ -1,3 +1,4 @@
+import 'package:bilipatra_retail_counter/services/invoice_generator.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
@@ -5,7 +6,10 @@ import 'package:go_router/go_router.dart';
 import 'providers/app_provider.dart';
 import 'routes/app_router.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  // await InvoiceGenerator.init();
+  // InvoiceGenerator.preloadAssets();
   runApp(const BilipatraApp());
 }
 
