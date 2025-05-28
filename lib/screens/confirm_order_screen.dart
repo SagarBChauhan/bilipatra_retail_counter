@@ -1,11 +1,43 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 import '../services/invoice_generator.dart';
 import 'dart:html' as html;
 
-class ConfirmOrderScreen extends StatelessWidget {
+class ConfirmOrderScreen extends StatefulWidget {
   const ConfirmOrderScreen({super.key});
+
+  @override
+  State<ConfirmOrderScreen> createState() => _ConfirmOrderScreenState();
+}
+
+class _ConfirmOrderScreenState extends State<ConfirmOrderScreen> {
+  bool _isLoading = false;
+
+  Future<void> _handlePrintInvoice(user, products) async {
+    setState(() => _isLoading = true);
+    try {
+      await _generatePdfInBackground(user, products);
+    } catch (e) {
+      debugPrint("Error generating PDF: $e");
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _generatePdfInBackground(user, products) async {
+    await compute(generatePdfTask, {'user': user, 'products': products});
+  }
+
+
+// Place this at the top level of your file or in another utils file
+  Future<void> generatePdfTask(Map<String, dynamic> args) async {
+    final user = args['user'];
+    final products = args['products'];
+    await InvoiceGenerator.generateInvoicePdf(user, products);
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -102,7 +134,6 @@ class ConfirmOrderScreen extends StatelessWidget {
                     ),
                   ),
 
-                  /// --- FOOTER SECTION ---
                   const Divider(),
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 8),
@@ -123,11 +154,20 @@ class ConfirmOrderScreen extends StatelessWidget {
                     children: [
                       Expanded(
                         child: ElevatedButton.icon(
-                          onPressed: () {
-                            InvoiceGenerator.generateInvoicePdf(user!, products);
-                          },
-                          icon: const Icon(Icons.print),
-                          label: const Text("Print Invoice"),
+                          onPressed: _isLoading
+                              ? null
+                              : () => _handlePrintInvoice(user, products),
+                          icon: _isLoading
+                              ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                              : const Icon(Icons.print),
+                          label: Text(_isLoading ? "Generating..." : "Print Invoice"),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.grey.shade800,
                             foregroundColor: Colors.white,
@@ -141,7 +181,9 @@ class ConfirmOrderScreen extends StatelessWidget {
                       const SizedBox(width: 12),
                       Expanded(
                         child: ElevatedButton.icon(
-                          onPressed: () async {
+                          onPressed: _isLoading
+                              ? null
+                              : () async {
                             await InvoiceGenerator.downloadAndSharePdf(user!, products);
                             final whatsappUrl = Uri.encodeFull(
                               "https://wa.me/?text=Please find attached your invoice from Bilipatra Retail Counter.",
