@@ -20,7 +20,7 @@ class _ConfirmOrderScreenState extends State<ConfirmOrderScreen> {
   Future<void> _handlePrintInvoice(user, products) async {
     setState(() => _isLoading = true);
     try {
-      await InvoiceGenerator.generateInvoicePdf(user, products);
+      await InvoiceGeneratorEzo.generateInvoicePdf(user, products);
     } catch (e) {
       debugPrint("Error generating PDF: $e");
     } finally {
