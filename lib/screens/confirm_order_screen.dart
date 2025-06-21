@@ -1,11 +1,10 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
-import '../PrintScreen.dart';
 import '../providers/app_provider.dart';
 import '../services/api_service.dart';
+import '../utils/constants.dart';
 // import 'dart:html' as html;
 
 class ConfirmOrderScreen extends StatefulWidget {
@@ -17,6 +16,7 @@ class ConfirmOrderScreen extends StatefulWidget {
 
 class _ConfirmOrderScreenState extends State<ConfirmOrderScreen> {
   bool _isLoading = false;
+  OrderType _selectedOrderType = OrderType.cash;
 
   Future<void> _placeOrder(user, products) async {
     setState(() => _isLoading = true);
@@ -36,7 +36,7 @@ class _ConfirmOrderScreenState extends State<ConfirmOrderScreen> {
               .toList();
 
       final data = {
-        "order_type": "cash",
+        "order_type": _selectedOrderType.value,
         "order_status": "pending",
         "GST_amount": 0,
         // or calculate accordingly
@@ -191,6 +191,67 @@ class _ConfirmOrderScreenState extends State<ConfirmOrderScreen> {
                           fontWeight: FontWeight.bold,
                           color: Colors.green,
                         ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 12.0),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 0,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.green.shade50,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.green.shade200),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.payment, color: Colors.green),
+                          const SizedBox(width: 10),
+                          const Text(
+                            "Payment Type:",
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(width: 20),
+                          Expanded(
+                            child: DropdownButtonHideUnderline(
+                              child: DropdownButton<OrderType>(
+                                value: _selectedOrderType,
+                                isExpanded: true,
+                                icon: const Icon(
+                                  Icons.keyboard_arrow_down_rounded,
+                                ),
+                                dropdownColor: Colors.white,
+                                borderRadius: BorderRadius.circular(12),
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.black87,
+                                ),
+                                onChanged: (OrderType? newValue) {
+                                  if (newValue != null) {
+                                    setState(() {
+                                      _selectedOrderType = newValue;
+                                    });
+                                  }
+                                },
+                                items:
+                                    OrderType.values.map((OrderType type) {
+                                      return DropdownMenuItem<OrderType>(
+                                        value: type,
+                                        child: Text(type.label),
+                                      );
+                                    }).toList(),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
