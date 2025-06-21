@@ -3,9 +3,10 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:printing/printing.dart';
 import 'package:provider/provider.dart';
+import '../PrintScreen.dart';
 import '../providers/app_provider.dart';
 import '../services/invoice_generator.dart';
-import 'dart:html' as html;
+// import 'dart:html' as html;
 
 class ConfirmOrderScreen extends StatefulWidget {
   const ConfirmOrderScreen({super.key});
@@ -18,14 +19,20 @@ class _ConfirmOrderScreenState extends State<ConfirmOrderScreen> {
   bool _isLoading = false;
 
   Future<void> _handlePrintInvoice(user, products) async {
-    setState(() => _isLoading = true);
+    /*setState(() => _isLoading = true);
     try {
       await InvoiceGeneratorEzo.generateInvoicePdf(user, products);
     } catch (e) {
       debugPrint("Error generating PDF: $e");
     } finally {
       setState(() => _isLoading = false);
-    }
+    }*/
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => PrintScreen(user: user, products: products),
+      ),
+    );
   }
 
   Future<void> _generatePdfInBackground(user, products) async {
@@ -37,7 +44,7 @@ class _ConfirmOrderScreenState extends State<ConfirmOrderScreen> {
   Future<void> generatePdfTask(Map<String, dynamic> args) async {
     final user = args['user'];
     final products = args['products'];
-    await InvoiceGenerator.generateInvoicePdf(user, products);
+    // await InvoiceGenerator.generateInvoicePdf(user, products);
   }
 
 
@@ -186,11 +193,11 @@ class _ConfirmOrderScreenState extends State<ConfirmOrderScreen> {
                           onPressed: _isLoading
                               ? null
                               : () async {
-                            await InvoiceGenerator.downloadAndSharePdf(user!, products);
-                            final whatsappUrl = Uri.encodeFull(
-                              "https://wa.me/?text=Please find attached your invoice from Bilipatra Retail Counter.",
-                            );
-                            html.window.open(whatsappUrl, '_blank');
+                            // await InvoiceGenerator.downloadAndSharePdf(user!, products);
+                            // final whatsappUrl = Uri.encodeFull(
+                            //   "https://wa.me/?text=Please find attached your invoice from Bilipatra Retail Counter.",
+                            // );
+                            // html.window.open(whatsappUrl, '_blank');
                           },
                           icon: const Icon(Icons.share),
                           label: const Text("Send via WhatsApp"),

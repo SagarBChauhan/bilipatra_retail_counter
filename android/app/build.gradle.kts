@@ -8,7 +8,8 @@ plugins {
 android {
     namespace = "com.example.bilipatra_retail_counter"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+//    ndkVersion = flutter.ndkVersion
+    ndkVersion = "27.0.12077973" // 🔧 Add this line
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11

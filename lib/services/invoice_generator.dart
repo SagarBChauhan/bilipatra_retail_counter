@@ -1,3 +1,4 @@
+/*
 import 'dart:html' as html; // Web only
 import 'dart:typed_data';
 
@@ -8,6 +9,7 @@ import 'package:printing/printing.dart';
 
 import '../models/product.dart';
 import '../models/user.dart';
+*/
 /*class InvoiceGenerator {
   static pw.ImageProvider? _logoImage;
   static pw.Font? _font;
@@ -116,7 +118,8 @@ import '../models/user.dart';
       onLayout: (PdfPageFormat format) async => pdf.save(),
     );
   }
-}*/
+}*//*
+
 
 class InvoiceGenerator {
   static Future<void> generateInvoicePdf(
@@ -427,3 +430,4 @@ class InvoiceGeneratorEzo {
       onLayout: (PdfPageFormat format) async => pdf.save(),);
   }
 }
+*/
