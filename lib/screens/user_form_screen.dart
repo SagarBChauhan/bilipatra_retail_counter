@@ -53,6 +53,7 @@ class _UserFormScreenState extends State<UserFormScreen> {
         ).showSnackBar(SnackBar(content: Text(response['message'])));
 
         final user = UserModel(id:3 ,name: name, number: number, address: address);
+        //Todo: pass actual user data from response
         Provider.of<AppProvider>(context, listen: false).setUser(user);
 
         context.push('/products');
