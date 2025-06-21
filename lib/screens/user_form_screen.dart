@@ -52,7 +52,7 @@ class _UserFormScreenState extends State<UserFormScreen> {
           context,
         ).showSnackBar(SnackBar(content: Text(response['message'])));
 
-        final user = UserModel(name: name, number: number, address: address);
+        final user = UserModel(id:3 ,name: name, number: number, address: address);
         Provider.of<AppProvider>(context, listen: false).setUser(user);
 
         context.push('/products');

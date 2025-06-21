@@ -1,11 +1,11 @@
-import 'package:flutter/cupertino.dart' as pw;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:printing/printing.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+
 import '../PrintScreen.dart';
 import '../providers/app_provider.dart';
-import '../services/invoice_generator.dart';
+import '../services/api_service.dart';
 // import 'dart:html' as html;
 
 class ConfirmOrderScreen extends StatefulWidget {
@@ -18,35 +18,54 @@ class ConfirmOrderScreen extends StatefulWidget {
 class _ConfirmOrderScreenState extends State<ConfirmOrderScreen> {
   bool _isLoading = false;
 
-  Future<void> _handlePrintInvoice(user, products) async {
-    /*setState(() => _isLoading = true);
+  Future<void> _placeOrder(user, products) async {
+    setState(() => _isLoading = true);
+
     try {
-      await InvoiceGeneratorEzo.generateInvoicePdf(user, products);
+      final api = ApiService(context);
+      final List<Map<String, dynamic>> productList =
+          products
+              .map<Map<String, dynamic>>(
+                (p) => {
+                  "product_id": p.id,
+                  "qty": p.quantity,
+                  "unit": "pcs",
+                  "discount": 0,
+                },
+              )
+              .toList();
+
+      final data = {
+        "order_type": "cash",
+        "order_status": "pending",
+        "GST_amount": 0,
+        // or calculate accordingly
+        "total_discount": 0,
+        // or calculate accordingly
+        "total_amount": products.fold(
+          0.0,
+          (sum, item) => sum + item.price * item.quantity,
+        ),
+        "customer_id": user?.id ?? 1,
+        "product_list": productList,
+      };
+
+      final orderId = await api.placeOrder(data);
+
+      // Navigate to Success Screen
+      context.goNamed(
+        'orderSuccess',
+        pathParameters: {'orderId': orderId.toString()},
+      );
     } catch (e) {
-      debugPrint("Error generating PDF: $e");
+      print(e);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("❌ Order failed: $e")));
     } finally {
       setState(() => _isLoading = false);
-    }*/
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => PrintScreen(user: user, products: products),
-      ),
-    );
+    }
   }
-
-  Future<void> _generatePdfInBackground(user, products) async {
-    await compute(generatePdfTask, {'user': user, 'products': products});
-  }
-
-
-// Place this at the top level of your file or in another utils file
-  Future<void> generatePdfTask(Map<String, dynamic> args) async {
-    final user = args['user'];
-    final products = args['products'];
-    // await InvoiceGenerator.generateInvoicePdf(user, products);
-  }
-
 
   @override
   Widget build(BuildContext context) {
@@ -56,7 +75,7 @@ class _ConfirmOrderScreenState extends State<ConfirmOrderScreen> {
 
     double total = products.fold(
       0,
-          (sum, item) => sum + (item.price * item.quantity),
+      (sum, item) => sum + (item.price * item.quantity),
     );
 
     return Scaffold(
@@ -98,9 +117,18 @@ class _ConfirmOrderScreenState extends State<ConfirmOrderScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text('Name: ${user?.name}', style: const TextStyle(fontSize: 16)),
-                                  Text('Phone: ${user?.number}', style: const TextStyle(fontSize: 16)),
-                                  Text('Address: ${user?.address}', style: const TextStyle(fontSize: 16)),
+                                  Text(
+                                    'Name: ${user?.name}',
+                                    style: const TextStyle(fontSize: 16),
+                                  ),
+                                  Text(
+                                    'Phone: ${user?.number}',
+                                    style: const TextStyle(fontSize: 16),
+                                  ),
+                                  Text(
+                                    'Address: ${user?.address}',
+                                    style: const TextStyle(fontSize: 16),
+                                  ),
                                 ],
                               ),
                             ),
@@ -129,10 +157,18 @@ class _ConfirmOrderScreenState extends State<ConfirmOrderScreen> {
                                     style: const TextStyle(color: Colors.black),
                                   ),
                                 ),
-                                title: Text(item.name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                                title: Text(
+                                  item.name,
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
                                 trailing: Text(
                                   '₹ ${(item.price * item.quantity).toStringAsFixed(2)}',
-                                  style: const TextStyle(fontWeight: FontWeight.w600),
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
                               );
                             },
@@ -163,44 +199,47 @@ class _ConfirmOrderScreenState extends State<ConfirmOrderScreen> {
                     children: [
                       Expanded(
                         child: ElevatedButton.icon(
-                          onPressed: _isLoading
-                              ? null
-                              : () => _handlePrintInvoice(user, products),
-                          icon: _isLoading
-                              ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                              : const Icon(Icons.print),
-                          label: Text(_isLoading ? "Generating..." : "Print Invoice"),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.grey.shade800,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
+                          onPressed:
+                              _isLoading
+                                  ? null
+                                  : () async {
+                                    final confirm = await showDialog<bool>(
+                                      context: context,
+                                      builder:
+                                          (_) => AlertDialog(
+                                            title: const Text("Place Order?"),
+                                            content: const Text(
+                                              "Do you want to place this order?",
+                                            ),
+                                            actions: [
+                                              TextButton(
+                                                onPressed:
+                                                    () => Navigator.pop(
+                                                      context,
+                                                      false,
+                                                    ),
+                                                child: const Text("Cancel"),
+                                              ),
+                                              TextButton(
+                                                onPressed:
+                                                    () => Navigator.pop(
+                                                      context,
+                                                      true,
+                                                    ),
+                                                child: const Text("Confirm"),
+                                              ),
+                                            ],
+                                          ),
+                                    );
+
+                                    if (confirm ?? false) {
+                                      await _placeOrder(user, products);
+                                    }
+                                  },
+                          icon: const Icon(Icons.shopping_bag),
+                          label: Text(
+                            _isLoading ? "Placing Order..." : "Place Order",
                           ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          onPressed: _isLoading
-                              ? null
-                              : () async {
-                            // await InvoiceGenerator.downloadAndSharePdf(user!, products);
-                            // final whatsappUrl = Uri.encodeFull(
-                            //   "https://wa.me/?text=Please find attached your invoice from Bilipatra Retail Counter.",
-                            // );
-                            // html.window.open(whatsappUrl, '_blank');
-                          },
-                          icon: const Icon(Icons.share),
-                          label: const Text("Send via WhatsApp"),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.green,
                             foregroundColor: Colors.white,

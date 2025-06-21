@@ -390,93 +390,12 @@ class ApiService {
     }
   }
 
-  Future<Map<String, dynamic>> proceedToPay(
-    int cartId,
-    int userId,
-    int deliveryBoyId,
-    String selectedSlot,
-  ) async {
-    final url = '$baseUrl/order_payment_detail/v1/proceedtopaycombined';
-    final headers = {'Content-Type': 'application/json; charset=UTF-8'};
-    final body = jsonEncode({
-      'cart_id': cartId,
-      'user_id': userId,
-      'delivery_boy_id': deliveryBoyId,
-      'expect_delivery_time': selectedSlot,
-    });
-
-    Logger.logRequest(url, headers, body);
-
-    try {
-      final response = await http.post(
-        Uri.parse(url),
-        headers: headers,
-        body: body,
-      );
-
-      Logger.logResponse(response.statusCode, response.body);
-
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> responseData = jsonDecode(response.body);
-        if (responseData['flag'] == 1 && responseData['code'] == 200) {
-          return responseData;
-        } else {
-          throw Exception(
-            'The order placement failed: ${responseData['message']}',
-          );
-        }
-      } else {
-        throw Exception('The order placement failed: ${response.statusCode}');
-      }
-    } catch (e) {
-      Logger.log('Error: $e');
-      throw Exception('The order placement failed: $e');
-    }
-  }
-
-  Future<void> placeOrder(
-    String razorpayOrderId,
-    String payment_data,
-    int orderStatus,
-    int transactionId,
-    int cartId,
-    int userId,
-  ) async {
-    final url = '$baseUrl/order_payment_detail/v1/orderplaced';
-    final headers = {'Content-Type': 'application/json; charset=UTF-8'};
-    final body = jsonEncode({
-      'razorpay_order_id': razorpayOrderId,
-      'payment_data': payment_data,
-      'order_status': orderStatus,
-      'transaction_id': transactionId,
-      'cart_id': cartId,
-      'user_id': userId,
-    });
-
-    Logger.logRequest(url, headers, body);
-
-    try {
-      final response = await http.post(
-        Uri.parse(url),
-        headers: headers,
-        body: body,
-      );
-
-      Logger.logResponse(response.statusCode, response.body);
-
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> responseData = jsonDecode(response.body);
-        if (responseData['flag'] == 1 && responseData['code'] == 200) {
-          Logger.log('Order placed successfully.');
-        } else {
-          throw Exception('Failed to place order: ${responseData['message']}');
-        }
-      } else {
-        throw Exception('Failed to place order: ${response.statusCode}');
-      }
-    } catch (e) {
-      Logger.log('Error: $e');
-      throw Exception('Failed to place order: $e');
+  Future<int> placeOrder(Map<String, dynamic> data) async {
+    final response = await _postRequest('retailcounter_order/v1/apiinsert', data);
+    if (response['flag'] == 1 && response['code'] == 200) {
+      return response['data']['order_id'];
+    } else {
+      throw Exception('Order failed: ${response['message']}');
     }
   }
 }
