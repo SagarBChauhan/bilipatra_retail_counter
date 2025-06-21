@@ -6,11 +6,9 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/common_response.dart';
 import '../models/product.dart';
-import '../utils/constants.dart';
 import '../utils/logger.dart';
 
 class ApiService {
@@ -347,7 +345,11 @@ class ApiService {
 
   ///Example Ends ------
 
-  Future<Map<String, dynamic>> customerLogin(String customerName, String mobile, String address) async {
+  Future<Map<String, dynamic>> customerLogin(
+    String customerName,
+    String mobile,
+    String address,
+  ) async {
     return await _postRequest("retailcounter_user/v1/apiinsert", {
       'customer_name': customerName,
       'mobile_no': int.parse(mobile),
@@ -374,42 +376,17 @@ class ApiService {
     }
   }
 
-  Future<List<Product>> fetchProducts(int pageIndex, int pageSize) async {
-    final url = '$baseUrl/product_detail/v1/apiselectall';
-    final headers = {'Content-Type': 'application/json; charset=UTF-8'};
-    final body = jsonEncode({
+  Future<List<ProductModel>> productList(int pageIndex, int pageSize) async {
+    final response = await _postRequest("product_detail/v1/apiselectall", {
       'pageIndex': pageIndex,
       'pageSize': pageSize,
       'searchParam': {'global_search': '', 'product_name': ''},
     });
-
-    Logger.logRequest(url, headers, body);
-
-    try {
-      final response = await http.post(
-        Uri.parse(url),
-        headers: headers,
-        body: body,
-      );
-
-      Logger.logResponse(response.statusCode, response.body);
-
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> responseData = jsonDecode(response.body);
-        if (responseData['flag'] == 1 && responseData['code'] == 200) {
-          final List<dynamic> results = responseData['data']['result'];
-          return results.map((product) => Product.fromJson(product)).toList();
-        } else {
-          throw Exception(
-            'Failed to load products: ${responseData['message']}',
-          );
-        }
-      } else {
-        throw Exception('Failed to load products: ${response.statusCode}');
-      }
-    } catch (e) {
-      Logger.log('Error: $e');
-      throw Exception('Failed to fetch products: $e');
+    if (response['flag'] == 1 && response['code'] == 200) {
+      final List<dynamic> results = response['data']['result'];
+      return results.map((product) => ProductModel.fromJson(product)).toList();
+    } else {
+      throw Exception('Failed to load products: ${response['message']}');
     }
   }
 

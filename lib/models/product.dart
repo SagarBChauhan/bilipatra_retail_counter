@@ -1,42 +1,4 @@
 class ProductModel {
-  final String id;
-  final String name;
-  final double price;
-  int quantity;
-  final String image; // new field
-
-  ProductModel({
-    required this.id,
-    required this.name,
-    required this.price,
-    required this.image, // include in constructor
-    this.quantity = 0,
-  });
-
-  @override
-  bool operator ==(Object other) {
-    if (identical(this, other)) return true;
-    return other is ProductModel && other.id == id;
-  }
-
-  @override
-  int get hashCode => id.hashCode;
-
-  ProductModel copyWith({
-    int? quantity,
-    String? image,
-  }) {
-    return ProductModel(
-      id: id,
-      name: name,
-      price: price,
-      quantity: quantity ?? this.quantity,
-      image: image ?? this.image,
-    );
-  }
-}
-
-class Product {
   final int id;
   final String name;
   final String image;
@@ -45,13 +7,11 @@ class Product {
   final String description;
   final String weight;
   final String manufactureBy;
-  final DateTime productMfd;
-  final DateTime productExpiryDate;
-  final bool isActive;
-  final DateTime createdAt;
-  final DateTime lastUpdatedAt;
+  final DateTime mfd;
+  final DateTime expiry;
+  int quantity;
 
-  Product({
+  ProductModel({
     required this.id,
     required this.name,
     required this.image,
@@ -60,28 +20,23 @@ class Product {
     required this.description,
     required this.weight,
     required this.manufactureBy,
-    required this.productMfd,
-    required this.productExpiryDate,
-    required this.isActive,
-    required this.createdAt,
-    required this.lastUpdatedAt,
+    required this.mfd,
+    required this.expiry,
+    this.quantity = 0,
   });
 
-  factory Product.fromJson(Map<String, dynamic> json) {
-    return Product(
+  factory ProductModel.fromJson(Map<String, dynamic> json) {
+    return ProductModel(
       id: json['product_id'],
-      name: json['product_name'],
-      image: json['product_image'],
-      price: (json['product_price'] as num).toDouble(),
-      discountPrice: (json['product_discount_price'] as num).toDouble(),
-      description: json['product_description'],
-      weight: json['product_weight'],
-      manufactureBy: json['manufacture_by'],
-      productMfd: DateTime.parse(json['product_mfd']),
-      productExpiryDate: DateTime.parse(json['product_expiry_date']),
-      isActive: json['is_active'] == 1,
-      createdAt: DateTime.parse(json['created_at']),
-      lastUpdatedAt: DateTime.parse(json['last_updated_at']),
+      name: json['product_name'] ?? '',
+      image: json['product_image'] ?? '',
+      price: (json['product_price'] ?? 0).toDouble(),
+      discountPrice: (json['product_discount_price'] ?? 0).toDouble(),
+      description: json['product_description'] ?? '',
+      weight: json['product_weight'] ?? '',
+      manufactureBy: json['manufacture_by'] ?? '',
+      mfd: DateTime.parse(json['product_mfd']),
+      expiry: DateTime.parse(json['product_expiry_date']),
     );
   }
 
@@ -95,50 +50,35 @@ class Product {
       'product_description': description,
       'product_weight': weight,
       'manufacture_by': manufactureBy,
-      'product_mfd': productMfd.toIso8601String(),
-      'product_expiry_date': productExpiryDate.toIso8601String(),
-      'is_active': isActive ? 1 : 0,
-      'created_at': createdAt.toIso8601String(),
-      'last_updated_at': lastUpdatedAt.toIso8601String(),
+      'product_mfd': mfd.toIso8601String(),
+      'product_expiry_date': expiry.toIso8601String(),
     };
   }
-}
 
-class ProductListResponse {
-  final int flag;
-  final int code;
-  final String message;
-  final List<Product> products;
-  final int count;
-
-  ProductListResponse({
-    required this.flag,
-    required this.code,
-    required this.message,
-    required this.products,
-    required this.count,
-  });
-
-  factory ProductListResponse.fromJson(Map<String, dynamic> json) {
-    return ProductListResponse(
-      flag: json['flag'],
-      code: json['code'],
-      message: json['message'],
-      products: List<Product>.from(json['data']['result'].map((p) => Product.fromJson(p))),
-      count: json['data']['count'],
+  ProductModel copyWith({
+    int? quantity,
+  }) {
+    return ProductModel(
+      id: id,
+      name: name,
+      image: image,
+      price: price,
+      discountPrice: discountPrice,
+      description: description,
+      weight: weight,
+      manufactureBy: manufactureBy,
+      mfd: mfd,
+      expiry: expiry,
+      quantity: quantity ?? this.quantity,
     );
   }
 
-  Map<String, dynamic> toJson() {
-    return {
-      'flag': flag,
-      'code': code,
-      'message': message,
-      'data': {
-        'result': products.map((p) => p.toJson()).toList(),
-        'count': count,
-      },
-    };
-  }
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+          other is ProductModel && runtimeType == other.runtimeType && id == other.id;
+
+  @override
+  int get hashCode => id.hashCode;
 }
 

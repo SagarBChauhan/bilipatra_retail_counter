@@ -5,43 +5,66 @@ import 'package:provider/provider.dart';
 
 import '../models/product.dart';
 import '../providers/app_provider.dart';
-import 'confirm_order_screen.dart';
+import '../services/api_service.dart';
 
-class ProductListScreen extends StatelessWidget {
+class ProductListScreen extends StatefulWidget {
   const ProductListScreen({super.key});
 
-  List<ProductModel> get dummyProducts => [
-        ProductModel(
-            id: 'p1',
-            name: 'Item A',
-            price: 99.0,
-            image:
-                'https://magicstudio.com/blog/content/images/2023/10/props-product-photography.webp'),
-        ProductModel(
-            id: 'p2',
-            name: 'Item B',
-            price: 149.5,
-            image:
-                'https://magicstudio.com/blog/content/images/2023/10/props-product-photography.webp'),
-        ProductModel(
-            id: 'p3',
-            name: 'Item C',
-            price: 75.25,
-            image:
-                'https://magicstudio.com/blog/content/images/2023/10/props-product-photography.webp'),
-        ProductModel(
-            id: 'p4',
-            name: 'Item D',
-            price: 120.0,
-            image:
-                'https://magicstudio.com/blog/content/images/2023/10/props-product-photography.webp'),
-        ProductModel(
-            id: 'p5',
-            name: 'Item E',
-            price: 200.0,
-            image:
-                'https://magicstudio.com/blog/content/images/2023/10/props-product-photography.webp'),
-      ];
+  @override
+  State<ProductListScreen> createState() => _ProductListScreenState();
+}
+
+class _ProductListScreenState extends State<ProductListScreen> {
+  late ApiService _apiService;
+  final ScrollController _scrollController = ScrollController();
+  final int _pageSize = 20;
+  int _currentPage = 1;
+  bool _isLoading = false;
+  bool _hasMore = true;
+  String? _error;
+  List<ProductModel> _products = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _apiService = ApiService(context);
+    _loadProducts();
+    _scrollController.addListener(_scrollListener);
+  }
+
+  Future<void> _loadProducts() async {
+    if (_isLoading || !_hasMore) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      final results = await _apiService.productList(_currentPage, _pageSize);
+      setState(() {
+        _products.addAll(results.cast<ProductModel>());
+        _hasMore = results.length == _pageSize;
+        _currentPage++;
+      });
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+      });
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  void _scrollListener() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 300) {
+      _loadProducts();
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -56,136 +79,222 @@ class ProductListScreen extends StatelessWidget {
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            Expanded(
-                child: GridView.builder(
-                  itemCount: dummyProducts.length,
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount:
-                        (MediaQuery.of(context).size.width ~/ 180).clamp(2, 5),
-                    mainAxisExtent: 230,
-                    crossAxisSpacing: 12,
-                    mainAxisSpacing: 12,
-                  ),
-                  itemBuilder: (_, index) {
-                    final product = dummyProducts[index];
-                    final isSelected = selected.contains(product);
-                    final qty = isSelected
-                        ? selected.firstWhere((p) => p.id == product.id).quantity
-                        : 0;
-  
-                    return Card(
-                      elevation: 4,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: Image.network(
-                                product.image,
-                                height: 90,
-                                width: 90,
-                                fit: BoxFit.cover,
-                              ),
+        child:
+            _error != null
+                ? Center(child: Text("Error: $_error"))
+                : Column(
+                  children: [
+                    Expanded(
+                      child: GridView.builder(
+                        controller: _scrollController,
+                        itemCount: _products.length + (_hasMore ? 1 : 0),
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: (MediaQuery.of(context).size.width ~/
+                                  180)
+                              .clamp(2, 5),
+                          mainAxisExtent: 250,
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 12,
+                        ),
+                        itemBuilder: (_, index) {
+                          if (index == _products.length) {
+                            return const Center(
+                              child: CircularProgressIndicator(),
+                            );
+                          }
+
+                          final product = _products[index];
+                          final isSelected = selected.contains(product);
+                          final qty =
+                              isSelected
+                                  ? selected
+                                      .firstWhere((p) => p.id == product.id)
+                                      .quantity
+                                  : 0;
+
+                          return Card(
+                            elevation: 4,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
                             ),
-                            const SizedBox(height: 8),
-                            Text(
-                              product.name,
-                              style: GoogleFonts.poppins(
-                                  fontSize: 15, fontWeight: FontWeight.w600),
-                              textAlign: TextAlign.center,
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              '₹ ${product.price.toStringAsFixed(2)}',
-                              style: GoogleFonts.poppins(
-                                  color: Colors.grey.shade700),
-                            ),
-                            const SizedBox(height: 6),
-                            isSelected
-                                ? Container(
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(8),
-                                      color: Colors.green.shade50,
-                                    ),
-                                    child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
+                            child: Padding(
+                              padding: const EdgeInsets.all(12),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Stack(
+                                      alignment: Alignment.center,
                                       children: [
-                                        IconButton(
-                                          icon: const Icon(
-                                              Icons.remove_circle_outline),
-                                          onPressed: () => appProvider
-                                              .decrementQuantity(product),
-                                        ),
-                                        Text('$qty',
-                                            style: GoogleFonts.poppins(
-                                                fontWeight: FontWeight.w500)),
-                                        IconButton(
-                                          icon: const Icon(
-                                              Icons.add_circle_outline),
-                                          onPressed: () => appProvider
-                                              .incrementQuantity(product),
+                                        Image.network(
+                                          product.image,
+                                          height: 90,
+                                          width: 90,
+                                          fit: BoxFit.cover,
+                                          loadingBuilder: (
+                                            context,
+                                            child,
+                                            loadingProgress,
+                                          ) {
+                                            if (loadingProgress == null)
+                                              return child;
+                                            return const SizedBox(
+                                              height: 90,
+                                              width: 90,
+                                              child: Center(
+                                                child:
+                                                    CircularProgressIndicator(
+                                                      strokeWidth: 2,
+                                                    ),
+                                              ),
+                                            );
+                                          },
+                                          errorBuilder: (
+                                            context,
+                                            error,
+                                            stackTrace,
+                                          ) {
+                                            return Image.asset(
+                                              'assets/images/placeholder.jpg',
+                                              // Make sure this file exists in your assets
+                                              height: 90,
+                                              width: 90,
+                                              fit: BoxFit.cover,
+                                            );
+                                          },
                                         ),
                                       ],
                                     ),
-                                  )
-                                : ElevatedButton(
-                                    onPressed: () =>
-                                        appProvider.addProduct(product),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.green,
-                                      foregroundColor: Colors.white,
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 12, vertical: 8),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                    ),
-                                    child: Text('Add to Cart',
-                                        style: GoogleFonts.poppins()),
                                   ),
-                          ],
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    product.name,
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                  Text(
+                                    product.weight,
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 13,
+                                      color: Colors.grey.shade600,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    '₹ ${product.price.toStringAsFixed(2)}',
+                                    style: GoogleFonts.poppins(
+                                      color: Colors.grey.shade700,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  isSelected
+                                      ? Container(
+                                        decoration: BoxDecoration(
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                          color: Colors.green.shade50,
+                                        ),
+                                        child: Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            IconButton(
+                                              icon: const Icon(
+                                                Icons.remove_circle_outline,
+                                              ),
+                                              onPressed:
+                                                  () => appProvider
+                                                      .decrementQuantity(
+                                                        product,
+                                                      ),
+                                            ),
+                                            Text(
+                                              '$qty',
+                                              style: GoogleFonts.poppins(
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                            IconButton(
+                                              icon: const Icon(
+                                                Icons.add_circle_outline,
+                                              ),
+                                              onPressed:
+                                                  () => appProvider
+                                                      .incrementQuantity(
+                                                        product,
+                                                      ),
+                                            ),
+                                          ],
+                                        ),
+                                      )
+                                      : ElevatedButton(
+                                        onPressed:
+                                            () =>
+                                                appProvider.addProduct(product),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.green,
+                                          foregroundColor: Colors.white,
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 12,
+                                            vertical: 8,
+                                          ),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(
+                                              8,
+                                            ),
+                                          ),
+                                        ),
+                                        child: Text(
+                                          'Add to Cart',
+                                          style: GoogleFonts.poppins(),
+                                        ),
+                                      ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    if (selected.isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      Text(
+                        'Total: ₹ ${appProvider.totalPrice.toStringAsFixed(2)}',
+                        style: GoogleFonts.poppins(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                    );
-                  },
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: () => context.push('/confirm'),
+                          icon: const Icon(Icons.check_circle_outline),
+                          label: Text(
+                            'Proceed to Confirm',
+                            style: GoogleFonts.poppins(
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green.shade700,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
-            ),
-            if (selected.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              Text(
-                'Total: ₹ ${appProvider.totalPrice.toStringAsFixed(2)}',
-                style: GoogleFonts.poppins(
-                    fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    context.push('/confirm');
-                  },
-                  icon: const Icon(Icons.check_circle_outline),
-                  label: Text('Proceed to Confirm',
-                      style: GoogleFonts.poppins(fontWeight: FontWeight.w500)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green.shade700,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                  ),
-                ),
-              ),
-            ]
-          ],
-        ),
       ),
     );
   }
